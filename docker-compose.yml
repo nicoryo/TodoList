@@ -1,0 +1,42 @@
+version: '3'
+services:
+  db:
+    image: mysql:5.6
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: root
+    volumes:
+      - mysql-data:/var/lib/mysql    #データの永続化のために必要
+    ports:
+      - "4306:3306"  #両方3306でもok。詳細は下の「番外編：DBをsequel proで可視化したい」へ
+
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    command: /bin/sh -c "rm -f /myapp/tmp/pids/server.pid && bundle exec rails s -p 3001 -b '0.0.0.0'"
+    image: rails:dev
+    volumes:
+      - .:/myapp    #ローカルのディレクトリをコンテナ上にマウント
+      - ./app/vendor/bundle:/myapp/vendor/bundle    #bundle installした後buildし直さなくてよくなる
+    environment:
+      TZ: Asia/Tokyo
+      RAILS_ENV: development
+    ports:
+      - "3001:3001"
+    depends_on: 
+      - db
+
+  front:
+    build: 
+      context: todo_front
+      dockerfile: Dockerfile
+    volumes:
+      - ./todo_front:/todo_front
+    command: /bin/sh -c "cd todo_front && yarn && yarn start"
+    ports:
+      - "3000:3000"
+
+volumes:
+  mysql-data:
+  bundle:      #bundle installした後buildし直さなくてよくなる
